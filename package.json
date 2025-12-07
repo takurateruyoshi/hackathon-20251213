@@ -1,0 +1,24 @@
+{
+  "name": "hackathon-20251213",
+  "version": "1.0.0",
+  "description": "python -m venv .venv . .venv/bin/activate pip install fastapi uvicorn",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/takurateruyoshi/hackathon-20251213.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/takurateruyoshi/hackathon-20251213/issues"
+  },
+  "homepage": "https://github.com/takurateruyoshi/hackathon-20251213#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.86.2"
+  }
+}
