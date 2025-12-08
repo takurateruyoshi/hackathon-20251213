@@ -46,12 +46,22 @@ kill -9 [PID]
 
 ・reactのパッケージをインストール
 npx create-react-app my-react-app
-・FastAPIとの連携用のライブラリをインストール
+FastAPIとの連携用のライブラリをインストール
 npm install axios
-・http通信の有効化*今回は使わないcd
-npm start
-・SSL通信(https通信)の有効化と実行
-HTTPS=true npm start
 
-# ngrok
-・ngrokをインストール
+# DB
+# 環境変数の読み込み
+current_dir = Path(__file__).parent.absolute()
+dotenv_path = current_dir / '.env'
+load_dotenv(dotenv_path)
+# 環境変数から Supabase の接続情報を取得
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_KEY")
+# Supabase クライアントの初期化
+supabase = create_client(supabase_url, supabase_key)
+print("Supabase client initialized successfully!")
+
+# .envファイルを作成し下記を記入すればDBの接続ができる。
+SUPABASE_URL=
+SUPABASE_KEY=
+# db.pyはSQLコードを共有するためのもの
