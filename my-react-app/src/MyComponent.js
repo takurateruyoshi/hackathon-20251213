@@ -5,7 +5,7 @@ function MyComponent() {
   const [data, setData] = useState('');
 
   useEffect(() => {
-    axios.get('http://localhost:8000/api/data')
+    axios.get('https://unapperceived-coolly-darian.ngrok-free.dev/api/data')
       .then(response => {
         setData(response.data.message);
       })
