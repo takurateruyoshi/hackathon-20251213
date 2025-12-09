@@ -43,7 +43,6 @@ HTTPS=true npm start
 
 # reactの操作方法
 
-
 * reactのパッケージをインストール
     * npx create-react-app my-react-app
 * FastAPIとの連携用のライブラリをインストール
@@ -66,4 +65,22 @@ https://dashboard.ngrok.com
     * ngrok http 8000
 * 起動時に必要な操作
     * 毎回新しいリンクが生成されるのでmain.pyのCORS設定(アクセスを許可するリンク)に追加する。
-    
+
+# DB
+               
+# 環境変数の読み込み
+current_dir = Path(__file__).parent.absolute()
+dotenv_path = current_dir / '.env'
+load_dotenv(dotenv_path)
+# 環境変数から Supabase の接続情報を取得
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_KEY")
+# Supabase クライアントの初期化
+supabase = create_client(supabase_url, supabase_key)
+print("Supabase client initialized successfully!")
+
+# .envファイルを作成し下記を記入すればDBの接続ができる。
+SUPABASE_URL=
+SUPABASE_KEY=
+# db.pyはSQLコードを共有するためのもの
+
