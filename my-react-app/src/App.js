@@ -66,7 +66,6 @@ function App() {
   const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef(null);
 
-  // ★ここ重要: プレイリストの中身を見るためのState
   const [viewingPlaylist, setViewingPlaylist] = useState(null);
 
   const [showAddToPlaylistModal, setShowAddToPlaylistModal] = useState(false);
@@ -132,7 +131,7 @@ function App() {
       setIsSearching(false); 
       setSearchQuery(""); 
       setSearchResults([]);
-      setViewingPlaylist(null); // プレイリスト詳細も閉じる
+      setViewingPlaylist(null);
   };
 
   const handleSearch = (e) => {
@@ -233,9 +232,18 @@ function App() {
           <div className="login-logo-circle">📡</div>
           <h1>Music Radar</h1>
           <form onSubmit={handleLogin} style={{width: '100%', marginTop: '40px'}}>
-            <label style={{display:'block', color:'#888', marginBottom:'10px', fontSize:'14px'}}>USERNAME</label>
-            <input type="text" placeholder="Name" value={tempUsername} onChange={(e) => setTempUsername(e.target.value)} className="rich-input-big" autoFocus />
-            <button type="submit" className="rich-btn-big">LOGIN <FaSignInAlt /></button>
+            <label style={{display:'block', color:'#888', marginBottom:'10px', fontSize:'14px'}}>ユーザー名</label>
+            <input 
+              type="text" 
+              placeholder="名前を入力" 
+              value={tempUsername}
+              onChange={(e) => setTempUsername(e.target.value)}
+              className="rich-input-big"
+              autoFocus
+            />
+            <button type="submit" className="rich-btn-big">
+              ログイン <FaSignInAlt />
+            </button>
           </form>
         </div>
       </div>
@@ -339,21 +347,24 @@ function App() {
                             <div style={{flex:1}}>
                                 <div style={{fontWeight:'bold', fontSize:'16px'}}>{user}</div>
                                 <div style={{fontSize:'13px', color:'#888', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-                                    {chatHistory[user].length > 0 ? chatHistory[user][chatHistory[user].length - 1].text : <span style={{color:'#00d4ff'}}>✨ 新しいフレンド！</span>}
+                                    {chatHistory[user].length > 0 
+                                      ? chatHistory[user][chatHistory[user].length - 1].text 
+                                      : <span style={{color:'#00d4ff'}}>✨ 新しいフレンド！メッセージを送ろう</span>
+                                    }
                                 </div>
                             </div>
-                            <span style={{fontSize:'11px', color:'#666'}}>{chatHistory[user].length > 0 ? chatHistory[user][chatHistory[user].length - 1].time : ''}</span>
+                            <span style={{fontSize:'11px', color:'#666'}}>
+                                {chatHistory[user].length > 0 ? chatHistory[user][chatHistory[user].length - 1].time : ''}
+                            </span>
                         </div>
                     ))
                 )}
             </div>
         )}
 
-        {/* --- ★修正: ライブラリ (詳細表示の復活！) --- */}
         {activeTab === 'library' && (
           <div className="library-view">
             {viewingPlaylist ? (
-                /* 詳細表示 */
                 <div className="playlist-detail">
                     <div className="detail-header" style={{display:'flex', alignItems:'center', marginBottom:'20px'}}>
                         <button onClick={() => setViewingPlaylist(null)} style={{background:'none', border:'none', color:'white', fontSize:'20px', marginRight:'15px', cursor:'pointer'}}>
@@ -378,7 +389,6 @@ function App() {
                     )}
                 </div>
             ) : (
-                /* 一覧表示 */
                 <>
                     <div className="create-playlist" onClick={() => { const name = prompt("プレイリスト名:"); if(name) setMyPlaylists([...myPlaylists, { id: Date.now(), name, songs: [] }]); }}>
                       <div className="plus-icon"><FaPlus /></div><span>新しいプレイリストを作成</span>
@@ -401,9 +411,9 @@ function App() {
                 <div className="profile-avatar"><FaUserCircle /></div>
                 <div className="profile-info">
                     <h2>{viewingUser.name}</h2>
-                    <p className="status-text">{viewingUser.dist}m away • Online</p>
+                    <p className="status-text">{viewingUser.dist}m 以内 • オンライン</p>
                     <div className="current-listening-card">
-                        <p style={{fontSize:'10px', color:'#aaa', marginBottom:'5px'}}>NOW PLAYING</p>
+                        <p style={{fontSize:'10px', color:'#aaa', marginBottom:'5px'}}>再生中</p>
                         <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
                             <img src={viewingUser.image || `https://img.youtube.com/vi/default/mqdefault.jpg`} style={{width:'40px', borderRadius:'4px'}} alt=""/>
                             <div style={{flex:1, overflow:'hidden'}}>
@@ -415,10 +425,14 @@ function App() {
                     </div>
                 </div>
                 <div className="profile-actions">
+                    {/* ★修正: 日本語表記に変更 */}
                     <button className={`rich-action-btn ${favoriteUsers.includes(viewingUser.name) ? 'fav' : ''}`} onClick={toggleFavorite}>
-                        {favoriteUsers.includes(viewingUser.name) ? <FaHeart /> : <FaRegHeart />} <span>{favoriteUsers.includes(viewingUser.name) ? 'Followed' : 'Follow'}</span>
+                        {favoriteUsers.includes(viewingUser.name) ? <FaHeart /> : <FaRegHeart />} 
+                        <span>{favoriteUsers.includes(viewingUser.name) ? 'フォロー中' : 'フォロー'}</span>
                     </button>
-                    <button className="rich-action-btn chat" onClick={startChatFromProfile}><FaCommentDots /> <span>Message</span></button>
+                    <button className="rich-action-btn chat" onClick={startChatFromProfile}>
+                        <FaCommentDots /> <span>メッセージ</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -430,7 +444,7 @@ function App() {
                 <div className="chat-rich-header">
                     <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
                         <FaUserCircle style={{fontSize:'24px'}}/>
-                        <div><h3 style={{margin:0, fontSize:'16px'}}>{activeChat}</h3><span style={{fontSize:'10px', color:'#00d4ff'}}>● Online</span></div>
+                        <div><h3 style={{margin:0, fontSize:'16px'}}>{activeChat}</h3><span style={{fontSize:'10px', color:'#00d4ff'}}>● オンライン</span></div>
                     </div>
                     <button onClick={() => setActiveChat(null)}><FaTimes /></button>
                 </div>
