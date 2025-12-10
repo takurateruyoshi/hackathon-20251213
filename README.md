@@ -84,3 +84,7 @@ SUPABASE_URL=
 SUPABASE_KEY=
 # db.pyはSQLコードを共有するためのもの
 
+# 追加ライブラリ
+pip install ytmusicapi
+
+npm install react-youtube react-icons react-leaflet leaflet

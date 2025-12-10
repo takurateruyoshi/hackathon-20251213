@@ -1,38 +1,341 @@
+/* --- ベース設定 --- */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #121212;
+  color: white;
+  -webkit-font-smoothing: antialiased;
+}
+
 .App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 80px; 
+}
+.main-content.has-mini-player {
+  padding-bottom: 140px;
+}
+
+/* --- ヘッダー --- */
+.app-header {
+  padding: 15px 20px;
+  background: rgba(18, 18, 18, 0.95);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+}
+.app-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(45deg, #007bff, #00d4ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* --- タブメニュー --- */
+.tab-menu {
+  display: flex;
+  gap: 10px;
+  padding: 0 15px 15px;
+  background: #121212;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab-menu::-webkit-scrollbar { display: none; }
+
+.tab-menu button {
+  background: #333;
+  color: #aaa;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.tab-menu button.active {
+  background: #fff;
+  color: #000;
+}
+
+/* --- リスト全般 --- */
+.song-list { padding: 0 15px; }
+.song-list h2 { font-size: 18px; margin-bottom: 15px; color: #ddd; }
+
+.song-item {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  margin-bottom: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 5px;
+  border-radius: 8px;
+}
+.song-item:active { background: #222; }
+
+.rank-number {
+  width: 25px; text-align: center; margin-right: 10px;
+  font-weight: bold; color: #888; font-size: 14px;
+}
+.song-thumb {
+  width: 50px; height: 50px; border-radius: 6px; object-fit: cover;
+  margin-right: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+.song-info { flex: 1; min-width: 0; }
+.song-title {
+  font-weight: bold; font-size: 15px; margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.song-artist {
+  font-size: 13px; color: #aaa;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.play-icon-btn {
+  background: none; border: none; color: #666; padding: 10px; cursor: pointer;
+}
+.add-btn {
+  background: none; border: 1px solid #555; color: #ddd;
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; margin-left: 5px; font-size: 12px;
+}
+.add-btn:hover { background: #333; border-color: #fff; color: #fff; }
+
+/* --- ライブラリ --- */
+.library-view { padding: 10px 15px; }
+.create-playlist {
+  display: flex; align-items: center; padding: 15px 0;
+  color: #00d4ff; font-weight: bold; cursor: pointer; margin-bottom: 10px;
+}
+.plus-icon {
+  width: 50px; height: 50px; background: #222;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; margin-right: 15px;
+}
+.playlist-card {
+  display: flex; align-items: center; padding: 10px 0;
+  border-bottom: 1px solid #222; cursor: pointer;
+}
+.playlist-art {
+  width: 50px; height: 50px; background: linear-gradient(135deg, #333, #555);
+  border-radius: 4px; display: flex; align-items: center; justify-content: center;
+  margin-right: 15px; font-size: 20px;
+}
+.playlist-info h3 { margin: 0 0 5px 0; font-size: 16px; }
+.playlist-info p { margin: 0; color: #888; font-size: 13px; }
+
+/* --- ボトムナビ --- */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: 60px; background: #212121;
+  display: flex; justify-content: space-around; align-items: center;
+  border-top: 1px solid #333; z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 10px; color: #888; width: 100%; height: 100%; cursor: pointer;
+}
+.nav-item.active { color: #fff; }
+.nav-item svg { font-size: 20px; margin-bottom: 4px; }
+
+/* --- プレイヤー --- */
+.player-container.mini {
+  position: fixed; bottom: 70px; left: 10px; right: 10px;
+  height: 56px; background: #333; border-radius: 8px;
+  z-index: 1500; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+.mini-player-bar {
+  display: flex; align-items: center; height: 100%; padding: 0 10px; cursor: pointer;
+}
+.mini-thumb {
+  width: 40px; height: 40px; border-radius: 4px; margin-right: 10px;
+}
+.mini-info { flex: 1; overflow: hidden; }
+.mini-title { font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-artist { font-size: 11px; color: #ccc; }
+.mini-play-btn { background: none; border: none; color: white; font-size: 20px; padding: 10px; }
+
+.player-container.expanded {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: #000; z-index: 2000;
+  display: flex; flex-direction: column; animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.full-player-content {
+  display: flex; flex-direction: column; height: 100%; padding: 20px; box-sizing: border-box;
+}
+.full-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;
+}
+.close-btn, .menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+.youtube-wrapper {
+  width: 100%; aspect-ratio: 16/9; background: #111; margin-bottom: 30px;
+  position: relative; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.touch-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: transparent; }
+.youtube-iframe { width: 100%; height: 100%; }
+.full-info { margin-bottom: 30px; }
+.full-info h2 { font-size: 24px; margin: 0 0 8px; line-height: 1.2; }
+.full-info p { color: #aaa; margin: 0; font-size: 18px; }
+.full-controls {
+  display: flex; justify-content: center; align-items: center; gap: 40px; margin-top: auto; margin-bottom: 40px;
+}
+.control-btn { background: none; border: none; color: white; font-size: 36px; cursor: pointer; }
+.play-circle {
+  width: 70px; height: 70px; border-radius: 50%; background: white; color: black;
+  border: none; display: flex; align-items: center; justify-content: center;
+  font-size: 28px; cursor: pointer; box-shadow: 0 4px 15px rgba(255,255,255,0.3);
+}
+.seek-bar {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 4px; background: #444; border-radius: 2px; outline: none; cursor: pointer;
+}
+.seek-bar::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; cursor: pointer;
 }
 
-.App-link {
-  color: #61dafb;
+/* --- モーダル共通 --- */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8); z-index: 2500;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: fadeIn 0.2s;
 }
+.modal-content {
+  background: #252525; width: 100%; max-width: 320px; border-radius: 16px;
+  padding: 20px; color: white; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.modal-content h3 { margin-top: 0; text-align: center; font-size: 18px; margin-bottom: 15px; }
+.modal-song-preview {
+  display: flex; align-items: center; gap: 12px; background: #333; padding: 10px; border-radius: 8px;
+}
+.modal-song-preview img { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; }
+.modal-song-preview p { margin: 0; font-size: 14px; line-height: 1.4; }
+.modal-list { max-height: 200px; overflow-y: auto; }
+.modal-item {
+  padding: 15px 10px; border-bottom: 1px solid #333; cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.modal-item:hover { background: #333; }
+.modal-item:last-child { border-bottom: none; }
+.modal-close-btn {
+  width: 100%; padding: 12px; margin-top: 15px; background: #444; color: white;
+  border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
+}
+.modal-close-btn:hover { background: #555; }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* --- ★リッチ・ログイン画面 (シンプル & Big UI) --- */
+.login-screen-rich {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: #121212; display: flex; align-items: center; justify-content: center; z-index: 5000;
 }
+.login-content-rich {
+  background: #1e1e1e; padding: 60px 40px; border-radius: 40px;
+  text-align: center; width: 90%; max-width: 360px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  display: flex; flex-direction: column; align-items: center;
+}
+.login-logo-circle {
+  width: 70px; height: 70px; background: #252525; color: #007bff;
+  border-radius: 50%; margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: center; font-size: 30px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+.login-content-rich h1 { margin: 0; font-size: 28px; letter-spacing: 1px; color: white; font-weight: 700; }
+.rich-input-big {
+  width: 100%; padding: 15px; font-size: 32px; font-weight: bold;
+  color: white; background: transparent; border: none; border-bottom: 2px solid #444;
+  text-align: center; outline: none; transition: all 0.3s; font-family: inherit;
+}
+.rich-input-big::placeholder { color: #444; font-weight: normal; }
+.rich-input-big:focus { border-bottom-color: #007bff; transform: scale(1.05); }
+.rich-btn-big {
+  margin-top: 40px; width: 100%; padding: 18px; border-radius: 30px; border: none;
+  background: #007bff; color: white; font-weight: bold; font-size: 16px; letter-spacing: 1px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+  box-shadow: 0 5px 20px rgba(0, 123, 255, 0.4); transition: transform 0.2s, background 0.2s;
+}
+.rich-btn-big:hover { background: #0056b3; }
+.rich-btn-big:active { transform: scale(0.95); }
+
+/* --- ★リッチ・プロフィール --- */
+.profile-rich { padding: 0 !important; overflow: hidden; background: #1e1e1e; border: 1px solid #333; }
+.profile-cover { height: 100px; background: linear-gradient(45deg, #ff9a9e, #fad0c4, #fad0c4); }
+.profile-avatar {
+  width: 90px; height: 90px; background: #1e1e1e; border-radius: 50%;
+  margin: -45px auto 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 80px; color: #ccc; padding: 5px;
+}
+.profile-info { padding: 0 20px 20px; text-align: center; }
+.status-text { color: #888; font-size: 12px; margin-top: -10px; margin-bottom: 20px; }
+.current-listening-card { background: #2a2a2a; border-radius: 12px; padding: 12px; text-align: left; border: 1px solid #333; }
+.profile-actions { display: flex; gap: 10px; padding: 0 20px 20px; }
+.rich-action-btn {
+  flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;
+}
+.rich-action-btn:hover { opacity: 0.9; }
+.rich-action-btn.fav { background: #e91e63; color: white; }
+.rich-action-btn.chat { background: #007bff; color: white; }
+
+/* --- ★リッチ・チャット --- */
+.chat-rich { height: 85vh; display: flex; flex-direction: column; padding: 0; background: #121212; }
+.chat-rich-header {
+  padding: 15px; background: #1e1e1e; border-bottom: 1px solid #333;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.chat-rich-header button { background: none; border: none; color: #aaa; font-size: 20px; }
+.chat-rich-body {
+  flex: 1; padding: 15px; overflow-y: auto; background: #0f0f0f;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.chat-bubble-rich {
+  max-width: 75%; padding: 10px 15px; border-radius: 20px; font-size: 14px; line-height: 1.4;
+  position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.chat-bubble-rich.me {
+  align-self: flex-end; background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white; border-bottom-right-radius: 4px;
+}
+.chat-bubble-rich.them {
+  align-self: flex-start; background: #333; color: white; border-bottom-left-radius: 4px;
+}
+.bubble-meta {
+  font-size: 9px; opacity: 0.7; text-align: right; margin-top: 4px; display: flex; justify-content: flex-end; gap: 3px;
+}
+.chat-rich-input {
+  padding: 10px 15px 20px; background: #1e1e1e; display: flex; gap: 10px; align-items: center;
+}
+.chat-rich-input input {
+  flex: 1; padding: 12px 15px; border-radius: 25px; border: none; background: #333; color: white; outline: none;
+}
+.chat-rich-input button {
+  width: 45px; height: 45px; border-radius: 50%; border: none; background: #333; color: #666;
+  cursor: default; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.2s;
+}
+.chat-rich-input button.active { background: #007bff; color: white; cursor: pointer; transform: scale(1.05); }
+
+/* バッジ類 */
+.fav-badge {
+  position: absolute; bottom: 0; right: 10px; background: #e91e63; color: white;
+  width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 10px; border: 2px solid #222;
+}
+.avatar-ring { position: relative; border-radius: 50%; padding: 2px; }
+.avatar-ring.fav { border: 2px solid #e91e63; }
