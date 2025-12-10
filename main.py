@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import List, Dict
 from pydantic import BaseModel
+import os
+from dotenv import load_dotenv
+from supabase import create_client
+from pathlib import Path
 import traceback
 
 try:
@@ -129,6 +133,50 @@ async def search(q: str):
     except Exception as e:
         print("Search Error:", e)
         return JSONResponse(content=[])
+
+
+
+# 現在のスクリプトのディレクトリを取得
+current_dir = Path(__file__).parent.absolute()
+
+# .env ファイルのパスを指定
+dotenv_path = current_dir / '.env'
+
+# .env ファイルを読み込む
+load_dotenv(dotenv_path)
+
+# 環境変数から Supabase の接続情報を取得
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_KEY")
+# Supabase クライアントの初期化
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_KEY")
+
+if not supabase_url or not supabase_key:
+    print("⚠️ Supabase環境変数が設定されていません")
+    use_supabase = False
+else:
+    try:
+        supabase = create_client(supabase_url, supabase_key)
+        use_supabase = True
+        print("✅ Supabase 初期化成功")
+    except Exception as e:
+        print(f"⚠️ Supabaseの初期化に失敗: {e}")
+        use_supabase = False
+
+@app.get("/api/users")
+async def get_users():
+    """Supabaseからユーザー情報を取得して表示"""
+    if not use_supabase:
+        return JSONResponse(content={"error": "Supabase not configured"}, status_code=500)
+    
+    try:
+        response = supabase.table('users').select('*').execute()
+        return JSONResponse(content=response.data)
+    except Exception as e:
+        print(f"エラーが発生しました: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
 
 if __name__ == "__main__":
     import uvicorn
