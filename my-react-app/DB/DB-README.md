@@ -13,6 +13,7 @@ is_broadcasting: BOOLEAN - 音楽配信中か
 is_discoverable: BOOLEAN - 他のユーザーから発見可能か
 ytmusic_connected: BOOLEAN - YTMusic連携済みか
 ytmusic_token: JSONB - YTMusic APIのトークン情報
+password: VARCHAR(255) [必須] - passwardの追加
 
 2. 現在の再生状態テーブル (current_playback)
 id: UUID [主キー] - レコードの一意識別子
@@ -159,3 +160,5 @@ track_video_id: VARCHAR(20) [必須、一意] - YouTube動画ID
 track_data: JSONB [必須] - 曲の詳細情報
 last_updated: TIMESTAMP WITH TIME ZONE - 最終更新時間
 expiry: TIMESTAMP WITH TIME ZONE - 有効期限
+
+
