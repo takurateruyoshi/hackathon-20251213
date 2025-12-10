@@ -145,9 +145,6 @@ dotenv_path = current_dir / '.env'
 # .env ファイルを読み込む
 load_dotenv(dotenv_path)
 
-# 環境変数から Supabase の接続情報を取得
-supabase_url = os.environ.get("SUPABASE_URL")
-supabase_key = os.environ.get("SUPABASE_KEY")
 # Supabase クライアントの初期化
 supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_KEY")
