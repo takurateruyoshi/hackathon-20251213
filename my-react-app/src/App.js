@@ -24,7 +24,7 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api'; // エンドポイント修正
+const API_BASE_URL = 'http://127.0.0.1:8000/api'; 
 
 const formatTime = (seconds) => {
   if (!seconds) return "0:00";
@@ -33,14 +33,12 @@ const formatTime = (seconds) => {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 };
 
-// ★追加: ピンの位置を固定するための計算式
 const getStableOffset = (str) => {
     if (!str) return 0;
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
-    // 常に同じズレ幅(-0.005 〜 +0.005)を返す
     return (hash % 1000) / 100000; 
 };
 
@@ -59,9 +57,7 @@ function getDistance(lat1, lng1, lat2, lng2) {
   return Math.round(Math.sqrt(x*x + y*y) * 111000);
 }
 
-// -------------------------------------------------------------
-// Supabase認証画面 (変更なし)
-// -------------------------------------------------------------
+// --- Supabase認証画面 ---
 function AuthScreen({ onLoginSuccess }) {
   const [isSignUp, setIsSignUp] = useState(false); 
   const [email, setEmail] = useState('');
@@ -76,13 +72,10 @@ function AuthScreen({ onLoginSuccess }) {
     setLoading(true);
 
     const endpoint = isSignUp ? 'signup' : 'signin';
-    const payload = isSignUp 
-      ? { email, password, username }
-      : { email, password };
+    const payload = isSignUp ? { email, password, username } : { email, password };
 
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/${endpoint}`, payload);
-      
       if (response.status === 200 && response.data.session) {
         const receivedUsername = response.data.username || username || email.split('@')[0];
         onLoginSuccess(receivedUsername, response.data.session.access_token);
@@ -102,71 +95,30 @@ function AuthScreen({ onLoginSuccess }) {
       <div className="login-content-rich">
         <div className="login-logo-circle">📡</div>
         <h1>{isSignUp ? 'アカウント作成' : 'ログイン'}</h1>
-        
         {error && <p style={{color: '#ff4d4f', margin: '10px 0', fontSize: '14px'}}>{error}</p>}
-
         <form onSubmit={handleSubmit} style={{width: '100%', marginTop: '40px'}}>
           <label style={{display:'block', color:'#888', marginBottom:'10px', fontSize:'14px', textAlign: 'left'}}>メールアドレス</label>
-          <input 
-            type="email" 
-            placeholder="メールアドレス" 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="rich-input-big"
-            style={{fontSize: '20px', padding: '10px', marginBottom: '20px', borderBottom: '1px solid #444'}}
-            required
-            autoFocus
-          />
-          
+          <input type="email" placeholder="メールアドレス" value={email} onChange={(e) => setEmail(e.target.value)} className="rich-input-big" style={{fontSize: '20px', padding: '10px', marginBottom: '20px', borderBottom: '1px solid #444'}} required autoFocus />
           <label style={{display:'block', color:'#888', marginBottom:'10px', fontSize:'14px', textAlign: 'left'}}>パスワード</label>
-          <input 
-            type="password" 
-            placeholder="パスワード" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="rich-input-big"
-            style={{fontSize: '20px', padding: '10px', marginBottom: '20px', borderBottom: '1px solid #444'}}
-            required
-          />
-
+          <input type="password" placeholder="パスワード" value={password} onChange={(e) => setPassword(e.target.value)} className="rich-input-big" style={{fontSize: '20px', padding: '10px', marginBottom: '20px', borderBottom: '1px solid #444'}} required />
           {isSignUp && (
             <>
               <label style={{display:'block', color:'#888', marginBottom:'10px', fontSize:'14px', textAlign: 'left'}}>ユーザー名</label>
-              <input 
-                type="text" 
-                placeholder="表示名を入力" 
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="rich-input-big"
-                style={{fontSize: '20px', padding: '10px', marginBottom: '20px', borderBottom: '1px solid #444'}}
-                required
-              />
+              <input type="text" placeholder="表示名を入力" value={username} onChange={(e) => setUsername(e.target.value)} className="rich-input-big" style={{fontSize: '20px', padding: '10px', marginBottom: '20px', borderBottom: '1px solid #444'}} required />
             </>
           )}
-
-          <button type="submit" className="rich-btn-big" disabled={loading}>
-            {loading ? '処理中...' : (isSignUp ? 'サインアップ' : 'サインイン')} 
-            <FaSignInAlt />
-          </button>
+          <button type="submit" className="rich-btn-big" disabled={loading}>{loading ? '処理中...' : (isSignUp ? 'サインアップ' : 'サインイン')} <FaSignInAlt /></button>
         </form>
-
         <p style={{color: '#aaa', marginTop: '30px', fontSize: '14px'}}>
           {isSignUp ? 'アカウントをお持ちですか？ ' : 'アカウントをお持ちでないですか？ '}
-          <span 
-            onClick={() => setIsSignUp(prev => !prev)} 
-            style={{color: '#00d4ff', cursor: 'pointer', fontWeight: 'bold'}}
-          >
-            {isSignUp ? 'サインイン' : 'サインアップ'}
-          </span>
+          <span onClick={() => setIsSignUp(prev => !prev)} style={{color: '#00d4ff', cursor: 'pointer', fontWeight: 'bold'}}>{isSignUp ? 'サインイン' : 'サインアップ'}</span>
         </p>
       </div>
     </div>
   );
 }
 
-// -------------------------------------------------------------
-// Appコンポーネント
-// -------------------------------------------------------------
+// --- Appコンポーネント ---
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [myUsername, setMyUsername] = useState("");
@@ -189,7 +141,6 @@ function App() {
   const chatEndRef = useRef(null);
 
   const [viewingPlaylist, setViewingPlaylist] = useState(null);
-
   const [showAddToPlaylistModal, setShowAddToPlaylistModal] = useState(false);
   const [songToAdd, setSongToAdd] = useState(null);
   const [currentSong, setCurrentSong] = useState(null);
@@ -207,16 +158,10 @@ function App() {
   }, [authToken]);
 
   const handleLoginSuccess = (username, token) => {
-    setMyUsername(username);
-    setAuthToken(token);
-    setIsLoggedIn(true);
+    setMyUsername(username); setAuthToken(token); setIsLoggedIn(true);
   };
-
   const handleLogout = () => {
-    setMyUsername("");
-    setAuthToken(null);
-    setIsLoggedIn(false);
-    setActiveTab('home');
+    setMyUsername(""); setAuthToken(null); setIsLoggedIn(false); setActiveTab('home');
   };
 
   useEffect(() => {
@@ -227,31 +172,20 @@ function App() {
         () => setLocationLoaded(true)
       );
     } else { setLocationLoaded(true); }
-    
     axios.get(`${API_BASE_URL}/charts`).then(res => setPopularSongs(res.data)).catch(() => setPopularSongs([]));
   }, []);
 
-  // --- ★修正: 近くの曲更新 (重複排除 & ピン固定) ---
   useEffect(() => {
     if (!locationLoaded || !isLoggedIn) return;
-    
     const fetchNearby = () => {
       axios.get(`${API_BASE_URL}/songs`, { headers: getAuthHeader() }).then(res => {
-          // 1. 重複排除 (最新の1曲だけ残す)
           const uniqueSongsMap = new Map();
-          res.data.forEach(song => {
-              // 共有者名をキーにして上書き
-              uniqueSongsMap.set(song.sharedBy, song);
-          });
+          res.data.forEach(song => { uniqueSongsMap.set(song.sharedBy, song); });
           const uniqueSongs = Array.from(uniqueSongsMap.values());
-
           const songsAroundMe = uniqueSongs.map((song) => {
             if (song.lat && song.lng) return song;
-            
-            // 2. ピン固定 (名前から座標オフセットを計算)
             const latOffset = getStableOffset(song.sharedBy);
             const lngOffset = getStableOffset(song.sharedBy + "_lng");
-            
             return { ...song, lat: myLocation[0] + latOffset, lng: myLocation[1] + lngOffset };
           });
           setNearbySongs(songsAroundMe);
@@ -273,13 +207,7 @@ function App() {
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatHistory, activeChat]);
 
-  const resetHome = () => { 
-      setActiveTab('home'); 
-      setIsSearching(false); 
-      setSearchQuery(""); 
-      setSearchResults([]);
-      setViewingPlaylist(null);
-  };
+  const resetHome = () => { setActiveTab('home'); setIsSearching(false); setSearchQuery(""); setSearchResults([]); setViewingPlaylist(null); };
 
   const handleSearch = (e) => {
     if (e.key === 'Enter' && searchQuery.trim() !== "") {
@@ -290,16 +218,14 @@ function App() {
 
   const openUserProfile = (e, song) => {
     e.stopPropagation();
-    // ★追加: 他人のプレイリスト用ダミーデータ (デモ用)
     const dummyPlaylist = popularSongs.sort(() => 0.5 - Math.random()).slice(0, 5);
-
     setViewingUser({
         name: song.sharedBy || 'Unknown',
         currentSong: song.title,
         artist: song.artist,
         image: song.image,
         dist: getDistance(myLocation[0], myLocation[1], song.lat, song.lng),
-        playlist: dummyPlaylist // 追加
+        playlist: dummyPlaylist
     });
   };
 
@@ -310,36 +236,25 @@ function App() {
         setFavoriteUsers(prev => prev.filter(u => u !== name));
     } else {
         setFavoriteUsers(prev => [...prev, name]);
-        setChatHistory(prev => {
-            if (prev[name]) return prev;
-            return { ...prev, [name]: [] };
-        });
+        setChatHistory(prev => { if (prev[name]) return prev; return { ...prev, [name]: [] }; });
     }
   };
 
   const startChatFromProfile = () => {
-    setActiveChat(viewingUser.name);
-    setViewingUser(null);
+    setActiveChat(viewingUser.name); setViewingUser(null);
     if (!chatHistory[viewingUser.name]) setChatHistory(prev => ({ ...prev, [viewingUser.name]: [] }));
   };
-
-  const openChatFromList = (name) => {
-    setActiveChat(name);
-  };
+  const openChatFromList = (name) => { setActiveChat(name); };
 
   const sendMessage = () => {
     if (chatInput.trim() === "") return;
-    const user = activeChat;
-    const text = chatInput;
+    const user = activeChat; const text = chatInput;
     const newMessage = { sender: 'me', text: text, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
-    
     setChatHistory(prev => ({ ...prev, [user]: [...(prev[user] || []), newMessage] }));
     setChatInput("");
-
     setTimeout(() => {
         let replyText = "いいね！👍";
         if (text.includes("こんにちは")) replyText = "こんにちは！趣味合いますね🎵";
-        else if (text.includes("好き")) replyText = "私もその曲大好きです！";
         const replyMessage = { sender: user, text: replyText, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
         setChatHistory(prev => ({ ...prev, [user]: [...(prev[user] || []), replyMessage] }));
     }, 1500);
@@ -350,20 +265,12 @@ function App() {
     if (!videoId) return alert("再生不可");
     const song = { id: videoId, title: songData.title, artist: songData.artist, image: songData.image || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` };
     setCurrentSong(song); setIsPlayerExpanded(autoExpand); setIsPlaying(true); setCurrentTime(0); setDuration(0);
-    
     const isAlreadyShared = nearbySongs.some(s => s.title === song.title && s.sharedBy === myUsername);
     if (!isAlreadyShared && isLoggedIn) {
       axios.post(`${API_BASE_URL}/songs`, { 
-        title: song.title, 
-        artist: song.artist, 
-        sharedBy: myUsername, 
-        distance: '0m', 
-        videoId: song.id,
-        lat: myLocation ? myLocation[0] : null,
-        lng: myLocation ? myLocation[1] : null
-      }, {
-        headers: getAuthHeader()
-      }).catch(console.error);
+        title: song.title, artist: song.artist, sharedBy: myUsername, distance: '0m', videoId: song.id,
+        lat: myLocation ? myLocation[0] : null, lng: myLocation ? myLocation[1] : null
+      }, { headers: getAuthHeader() }).catch(console.error);
     }
   };
 
@@ -401,15 +308,10 @@ function App() {
           </button>
         </header>
 
-        <div className="tab-menu">
-          <button className={activeTab === 'home' ? 'active' : ''} onClick={resetHome}>ホーム</button>
-          <button className={activeTab === 'nearby' ? 'active' : ''} onClick={() => setActiveTab('nearby')}>近くの人</button>
-          <button className={activeTab === 'messages' ? 'active' : ''} onClick={() => setActiveTab('messages')}>メッセージ</button>
-          <button className={activeTab === 'library' ? 'active' : ''} onClick={() => setActiveTab('library')}>ライブラリ</button>
-        </div>
+        {/* ★削除: 上部の tab-menu を削除しました */}
 
         {activeTab === 'home' && (
-          <div className="song-list">
+          <div className="song-list" style={{paddingTop: '20px'}}>
             <div style={{ marginBottom: '20px', position: 'relative' }}>
               <FaSearch style={{ position: 'absolute', left: '15px', top: '12px', color: '#888' }} />
               <input type="text" placeholder="曲名、アーティスト名で検索..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleSearch} style={{ width: '100%', padding: '10px 10px 10px 40px', borderRadius: '25px', border: 'none', background: '#333', color: 'white', outline: 'none', boxSizing: 'border-box' }} />
@@ -510,9 +412,7 @@ function App() {
             {viewingPlaylist ? (
                 <div className="playlist-detail">
                     <div className="detail-header" style={{display:'flex', alignItems:'center', marginBottom:'20px'}}>
-                        <button onClick={() => setViewingPlaylist(null)} style={{background:'none', border:'none', color:'white', fontSize:'20px', marginRight:'15px', cursor:'pointer'}}>
-                            <FaArrowLeft />
-                        </button>
+                        <button onClick={() => setViewingPlaylist(null)} style={{background:'none', border:'none', color:'white', fontSize:'20px', marginRight:'15px', cursor:'pointer'}}><FaArrowLeft /></button>
                         <h2 style={{margin:0}}>{viewingPlaylist.name}</h2>
                     </div>
                     {viewingPlaylist.songs.length === 0 ? (
@@ -522,10 +422,7 @@ function App() {
                             <div key={index} className="song-item" onClick={() => playSong(song, true)}>
                                 <span className="rank-number" style={{fontSize:'12px', color:'#666'}}>{index + 1}</span>
                                 <img src={song.image} alt="art" className="song-thumb" />
-                                <div className="song-info">
-                                    <div className="song-title">{song.title}</div>
-                                    <div className="song-artist">{song.artist}</div>
-                                </div>
+                                <div className="song-info"><div className="song-title">{song.title}</div><div className="song-artist">{song.artist}</div></div>
                                 <button className="play-icon-btn"><FaPlay /></button>
                             </div>
                         ))
@@ -566,8 +463,6 @@ function App() {
                             <FaMusic style={{color:'#00d4ff'}}/>
                         </div>
                     </div>
-                    
-                    {/* ★追加: 他人のプレイリスト表示 */}
                     <div className="user-public-playlist" style={{marginTop: '20px', textAlign: 'left'}}>
                         <h4 style={{fontSize:'14px', color:'#ddd', borderBottom:'1px solid #444', paddingBottom:'5px', display:'flex', alignItems:'center', gap:'5px'}}>
                             <FaCompactDisc /> 公開プレイリスト
@@ -588,12 +483,9 @@ function App() {
                 </div>
                 <div className="profile-actions">
                     <button className={`rich-action-btn ${favoriteUsers.includes(viewingUser.name) ? 'fav' : ''}`} onClick={toggleFavorite}>
-                        {favoriteUsers.includes(viewingUser.name) ? <FaHeart /> : <FaRegHeart />} 
-                        <span>{favoriteUsers.includes(viewingUser.name) ? 'フォロー中' : 'フォロー'}</span>
+                        {favoriteUsers.includes(viewingUser.name) ? <FaHeart /> : <FaRegHeart />} <span>{favoriteUsers.includes(viewingUser.name) ? 'フォロー中' : 'フォロー'}</span>
                     </button>
-                    <button className="rich-action-btn chat" onClick={startChatFromProfile}>
-                        <FaCommentDots /> <span>メッセージ</span>
-                    </button>
+                    <button className="rich-action-btn chat" onClick={startChatFromProfile}><FaCommentDots /> <span>メッセージ</span></button>
                 </div>
             </div>
         </div>
@@ -670,11 +562,20 @@ function App() {
         </div>
       )}
 
+      {/* ★修正: ボトムナビをリッチ化し、上部タブメニューを削除したためここ一本化 */}
       <nav className="bottom-nav">
-        <div className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={resetHome}><FaHome /><span>ホーム</span></div>
-        <div className={`nav-item ${activeTab === 'nearby' ? 'active' : ''}`} onClick={() => setActiveTab('nearby')}><FaUserFriends /><span>近くの人</span></div>
-        <div className={`nav-item ${activeTab === 'messages' ? 'active' : ''}`} onClick={() => setActiveTab('messages')}><FaCommentDots /><span>メッセージ</span></div>
-        <div className={`nav-item ${activeTab === 'library' ? 'active' : ''}`} onClick={() => setActiveTab('library')}> <FaList /><span>ライブラリ</span></div>
+        <div className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => { setActiveTab('home'); resetHome(); }}>
+            <FaHome /><span>ホーム</span>
+        </div>
+        <div className={`nav-item ${activeTab === 'nearby' ? 'active' : ''}`} onClick={() => setActiveTab('nearby')}>
+            <FaUserFriends /><span>近くの人</span>
+        </div>
+        <div className={`nav-item ${activeTab === 'messages' ? 'active' : ''}`} onClick={() => setActiveTab('messages')}>
+            <FaCommentDots /><span>メッセージ</span>
+        </div>
+        <div className={`nav-item ${activeTab === 'library' ? 'active' : ''}`} onClick={() => setActiveTab('library')}>
+            <FaList /><span>ライブラリ</span>
+        </div>
       </nav>
     </div>
   );
