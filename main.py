@@ -76,6 +76,17 @@ dotenv_path = current_dir / '.env'
 # .env ファイルを読み込む
 load_dotenv(dotenv_path)
 
+# -------------------------------------------------------------------------
+# Supabase 初期化
+# -------------------------------------------------------------------------
+
+# 現在のスクリプトのディレクトリを取得
+current_dir = Path(__file__).parent.absolute()
+# .env ファイルのパスを指定
+dotenv_path = current_dir / '.env'
+# .env ファイルを読み込む
+load_dotenv(dotenv_path)
+
 # Supabase クライアントの初期化
 supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_KEY")
@@ -92,13 +103,9 @@ else:
         print(f"⚠️ Supabaseの初期化に失敗: {e}")
         use_supabase = False
 
-# -------------------------------------------------------------------------
-# 認証エンドポイント (Supabase利用)
-# -------------------------------------------------------------------------
-
 @app.post("/api/auth/signup")
 async def signup_user(req: AuthRequest):
-    """ユーザーをSupabaseにサインアップする。成功後、profilesテーブルにユーザー名を追加。"""
+    """ユーザーをSupabaseにサインアップする。トリガー関数が自動的にusersテーブルにユーザー情報を追加。"""
     if not use_supabase:
         return JSONResponse(content={"error": "Supabase not configured"}, status_code=500)
     
@@ -106,29 +113,36 @@ async def signup_user(req: AuthRequest):
         return JSONResponse(content={"error": "ユーザー名を入力してください"}, status_code=400)
     
     try:
-        # 1. Supabase Authでアカウント作成
+        # Supabase Authでアカウント作成（ユーザー名をメタデータとして追加）
         response = supabase.auth.sign_up(
             {
                 "email": req.email,
                 "password": req.password,
+                "options": {
+                    "data": {
+                        "username": req.username  # トリガー関数がこのメタデータを使用
+                    }
+                }
             }
         )
         
-        # 2. ユーザー名(username)を profilesテーブルに保存
-        if response.user:
-            # profilesテーブルがユーザーのidを主キーに持つ必要があります
-            insert_response = supabase.table('users').insert([
-                {'id': response.user.id, 'username': req.username}
-            ]).execute()
-            
-            if insert_response.data is None:
-                 print(f"⚠️ profilesテーブルへのユーザー名登録失敗: {insert_response.error}")
-
+        # sessionオブジェクトを辞書に変換
+        session_data = None
+        if response.session:
+            session_data = {
+                "access_token": response.session.access_token,
+                "refresh_token": response.session.refresh_token,
+                # 必要に応じて他のセッション情報を追加
+            }
+        
         # 成功レスポンス
-        return JSONResponse(content={"user_id": response.user.id, "session": response.session}, status_code=200)
+        return JSONResponse(content={
+            "user_id": response.user.id, 
+            "session": session_data
+        }, status_code=200)
 
     except Exception as e:
-        # Supabaseからのエラーメッセージをキャッチして返す (例: 既に登録済みのメールアドレス)
+        # Supabaseからのエラーメッセージをキャッチして返す
         error_message = str(e).split('message=')[-1].split(',')[0].strip("'\"")
         print(f"サインアップエラー: {e}")
         return JSONResponse(content={"error": error_message or "サインアップに失敗しました"}, status_code=400)
@@ -140,7 +154,7 @@ async def signin_user(req: AuthRequest):
         return JSONResponse(content={"error": "Supabase not configured"}, status_code=500)
 
     try:
-        # 1. Supabase Authでサインイン
+        # Supabase Authでサインイン
         response = supabase.auth.sign_in_with_password(
             {
                 "email": req.email,
@@ -148,22 +162,35 @@ async def signin_user(req: AuthRequest):
             }
         )
 
-        # 2. ユーザーIDからユーザー名を取得
+        # ユーザーIDからユーザー名を取得
         username = None
         if response.user:
             profile_response = supabase.table('users').select('username').eq('id', response.user.id).single().execute()
             if profile_response.data:
                 username = profile_response.data.get('username')
         
+        # sessionオブジェクトを辞書に変換
+        session_data = None
+        if response.session:
+            session_data = {
+                "access_token": response.session.access_token,
+                "refresh_token": response.session.refresh_token,
+                # 必要に応じて他のセッション情報を追加
+            }
+        
         # 成功レスポンス
-        return JSONResponse(content={"user_id": response.user.id, "session": response.session, "username": username}, status_code=200)
+        return JSONResponse(content={
+            "user_id": response.user.id,
+            "session": session_data, 
+            "username": username
+        }, status_code=200)
 
     except Exception as e:
         error_message = str(e).split('message=')[-1].split(',')[0].strip("'\"")
         print(f"サインインエラー: {e}")
         return JSONResponse(content={"error": error_message or "サインインに失敗しました。メールアドレスとパスワードを確認してください。"}, status_code=400)
-
-
+    
+    
 # -------------------------------------------------------------------------
 # 既存のAPIエンドポイント
 # -------------------------------------------------------------------------
