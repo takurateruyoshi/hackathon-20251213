@@ -24,7 +24,7 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const API_BASE_URL = 'https://hackathon-20251213.onrender.com/api'; 
+const API_BASE_URL = 'https://hackathon-20251213.onrender.com'; 
 
 const formatTime = (seconds) => {
   if (!seconds) return "0:00";
