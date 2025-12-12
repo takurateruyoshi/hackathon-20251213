@@ -25,9 +25,8 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// ★テスト用URL (デプロイ時はRenderのURLに変えてください)
-const API_BASE_URL = 'http://127.0.0.1:8000/api'; 
-//const API_BASE_URL = 'https://hackathon-20251213.onrender.com/api';
+//const API_BASE_URL = 'http://127.0.0.1:8000/api'; 
+const API_BASE_URL = 'https://hackathon-20251213.onrender.com/api';
 
 const getThumbUrl = (videoId) => {
     if (!videoId || typeof videoId !== 'string' || videoId === 'default' || videoId === 'undefined' || videoId === 'null') {
