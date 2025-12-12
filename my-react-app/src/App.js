@@ -26,8 +26,8 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 // ★テスト用URL (デプロイ時はRenderのURLに変えてください)
-//const API_BASE_URL = 'http://127.0.0.1:8000/api'; 
-const API_BASE_URL = 'https://hackathon-20251213.onrender.com/api';
+const API_BASE_URL = 'http://127.0.0.1:8000/api'; 
+//const API_BASE_URL = 'https://hackathon-20251213.onrender.com/api';
 
 const getThumbUrl = (videoId) => {
     if (!videoId || typeof videoId !== 'string' || videoId === 'default' || videoId === 'undefined' || videoId === 'null') {
@@ -494,7 +494,7 @@ function App() {
             {(isSearching ? searchResults : popularSongs).map((song, index) => (
               <div key={index} className="song-item" onClick={() => playSong(song, true)}>
                 {!isSearching && <span className="rank-number">{index + 1}</span>}
-                <img src={song.image} alt="art" className="song-thumb" />
+                <img src={song.image || getThumbUrl(song.id)} alt="art" className="song-thumb" />
                 <div className="song-info"><div className="song-title">{song.title}</div><div className="song-artist">{song.artist}</div></div>
                 <button className="add-btn" onClick={(e) => openAddToPlaylist(e, song)}><FaPlus /></button>
               </div>

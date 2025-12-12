@@ -13,10 +13,10 @@ from datetime import datetime
 # --- 初期設定 ---
 try:
     from ytmusicapi import YTMusic
-    # 日本のチャートを取得するために地域を設定
-    yt = YTMusic(language='ja', location='JP')
+    # 検索機能をメインに使うため、地域設定はデフォルトでOK（安定性重視）
+    yt = YTMusic()
     use_api = True
-    print("✅ ytmusicapi initialized (JP mode)")
+    print("✅ ytmusicapi initialized")
 except:
     use_api = False
 
@@ -38,13 +38,13 @@ use_supabase = bool(supabase_url and supabase_key)
 if use_supabase:
     supabase = create_client(supabase_url, supabase_key)
 
-# --- バックアップデータ ---
+# --- バックアップデータ (安全なvideoId付き) ---
 BACKUP_SONGS = [
-    { "id": "ZRtdQ81jPUQ", "title": "アイドル", "artist": "YOASOBI", "image": "https://img.youtube.com/vi/ZRtdQ81jPUQ/mqdefault.jpg" },
-    { "id": "H6FUBWGSOIc", "title": "Bling-Bang-Bang-Born", "artist": "Creepy Nuts", "image": "https://img.youtube.com/vi/H6FUBWGSOIc/mqdefault.jpg" },
-    { "id": "g8DFX_i38c0", "title": "怪獣の花唄", "artist": "Vaundy", "image": "https://img.youtube.com/vi/g8DFX_i38c0/mqdefault.jpg" },
-    { "id": "anHcU5s3Y5o", "title": "晩餐歌", "artist": "tuki.", "image": "https://img.youtube.com/vi/anHcU5s3Y5o/mqdefault.jpg" },
-    { "id": "mpzI5bC4d-U", "title": "SPECIALZ", "artist": "King Gnu", "image": "https://img.youtube.com/vi/mpzI5bC4d-U/mqdefault.jpg" },
+    { "id": "ZRtdQ81jPUQ", "title": "アイドル", "artist": "YOASOBI", "image": "https://img.youtube.com/vi/ZRtdQ81jPUQ/mqdefault.jpg", "videoId": "ZRtdQ81jPUQ" },
+    { "id": "H6FUBWGSOIc", "title": "Bling-Bang-Bang-Born", "artist": "Creepy Nuts", "image": "https://img.youtube.com/vi/H6FUBWGSOIc/mqdefault.jpg", "videoId": "H6FUBWGSOIc" },
+    { "id": "g8DFX_i38c0", "title": "怪獣の花唄", "artist": "Vaundy", "image": "https://img.youtube.com/vi/g8DFX_i38c0/mqdefault.jpg", "videoId": "g8DFX_i38c0" },
+    { "id": "anHcU5s3Y5o", "title": "晩餐歌", "artist": "tuki.", "image": "https://img.youtube.com/vi/anHcU5s3Y5o/mqdefault.jpg", "videoId": "anHcU5s3Y5o" },
+    { "id": "mpzI5bC4d-U", "title": "SPECIALZ", "artist": "King Gnu", "image": "https://img.youtube.com/vi/mpzI5bC4d-U/mqdefault.jpg", "videoId": "mpzI5bC4d-U" },
 ]
 DUMMY_SONGS = []
 
@@ -123,7 +123,7 @@ async def get_songs():
         data = []
         for s in res.data:
             vid = s.get("videoid")
-            # 画像URLの安全化
+            # 画像URL生成（安全策）
             img = f"https://img.youtube.com/vi/{vid}/mqdefault.jpg" if vid and len(vid) > 5 else "https://via.placeholder.com/120x90?text=No+Image"
             data.append({
                 "id": vid,
@@ -157,16 +157,18 @@ async def add_song(song: SongRequest):
     except Exception as e:
         return JSONResponse({"error": str(e)}, 500)
 
-# --- チャートAPI (日本トレンド) ---
+# --- ★チャートAPI (検索ベースで確実にヒット曲を取得) ---
 @app.get("/api/charts")
 async def get_charts():
+    """検索を使って安定したヒット曲を取得 (J-Pop)"""
     if not use_api: return JSONResponse(BACKUP_SONGS)
     try:
-        charts = yt.get_charts(country='JP')
-        results = charts.get('videos', {}).get('items', [])
+        # "Official Music Video Japan" で検索すると、トレンドに近いMVが確実に取れます
+        # get_chartsはサーバーの場所によって空になることがあるため、検索が一番安全です
+        res = yt.search("New J-Pop Official Music Video", filter="videos", limit=20)
         
         songs = []
-        for item in results:
+        for item in res:
             if 'videoId' in item:
                 songs.append({
                     "id": item['videoId'],
@@ -175,19 +177,8 @@ async def get_charts():
                     "image": item['thumbnails'][-1]['url']
                 })
         
-        # 取得できなかった場合のフォールバック検索
-        if not songs:
-            res = yt.search("J-Pop Top Hits", filter="videos", limit=20)
-            for item in res:
-                if 'videoId' in item:
-                    songs.append({
-                        "id": item['videoId'],
-                        "title": item['title'],
-                        "artist": item['artists'][0]['name'] if item.get('artists') else "Unknown",
-                        "image": item['thumbnails'][-1]['url']
-                    })
-
-        return JSONResponse(songs[:20])
+        # 万が一空ならバックアップ
+        return JSONResponse(songs if songs else BACKUP_SONGS)
     except Exception as e:
         print(f"Chart Error: {e}")
         return JSONResponse(BACKUP_SONGS)
@@ -243,7 +234,15 @@ async def get_playlist_detail(playlist_id: str, request: Request):
         
         data = pl.data[0]
         songs = supabase.table("playlist_tracks").select("*").eq("playlist_id", playlist_id).order("position").execute()
-        data["songs"] = songs.data
+        
+        # 安全な画像URL生成
+        safe_songs = []
+        for s in songs.data:
+            vid = s.get("track_video_id")
+            s["image"] = f"https://img.youtube.com/vi/{vid}/mqdefault.jpg" if vid and len(vid) > 5 else "https://via.placeholder.com/120x90?text=No+Image"
+            safe_songs.append(s)
+            
+        data["songs"] = safe_songs
         return JSONResponse(snake_to_camel(data))
     except Exception as e:
         return JSONResponse({"error": str(e)}, 500)
@@ -276,7 +275,6 @@ async def delete_playlist(playlist_id: str, request: Request):
     try:
         token = auth.split(' ')[1]
         user = supabase.auth.get_user(token)
-        # 曲を削除してからプレイリスト本体を削除
         supabase.table("playlist_tracks").delete().eq("playlist_id", playlist_id).execute()
         supabase.table("playlists").delete().eq("id", playlist_id).eq("user_id", user.user.id).execute()
         return JSONResponse({"status": "deleted"})
@@ -310,7 +308,7 @@ async def get_user_public_tracks(username: str):
             track_res = supabase.table("playlist_tracks").select("*").eq("playlist_id", first_playlist_id).limit(20).execute()
             for t in track_res.data:
                 vid = t.get("track_video_id")
-                img = f"https://img.youtube.com/vi/{vid}/mqdefault.jpg" if vid else "https://via.placeholder.com/120x90?text=No+Image"
+                img = f"https://img.youtube.com/vi/{vid}/mqdefault.jpg" if vid and len(vid) > 5 else "https://via.placeholder.com/120x90?text=No+Image"
                 tracks.append({
                     "title": t.get("track_title"),
                     "artist": t.get("artist_name"),
