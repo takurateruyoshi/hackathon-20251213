@@ -239,7 +239,6 @@ async def get_songs():
         print(f"Supabase取得エラー: {e}")
         # エラー発生時も空のリストまたはバックアップデータを返す
         return JSONResponse(content=DUMMY_SONGS)
-
 @app.post("/api/songs")
 async def add_song(song: SongRequest):
     """自分の曲をSupabaseにシェアする（上書き保存）"""
@@ -252,6 +251,22 @@ async def add_song(song: SongRequest):
     shared_by = song_data.get("sharedBy")
     if not shared_by:
         return JSONResponse(content={"error": "sharedByは必須です"}, status_code=400)
+    
+    # 再生状態を取得（デフォルトはTrue）
+    is_playing = song_data.get("isPlaying", True)
+    
+    # is_playingがFalseの場合、レコードを削除する
+    if not is_playing:
+        try:
+            # ユーザーの既存レコードを削除
+            delete_response = supabase.table('shared_songs').delete().eq('sharedby', shared_by).execute()
+            print(f"Song record deleted for user {shared_by} (playback stopped)")
+            return JSONResponse(content={"status": "deleted", "message": "再生を停止したため、共有を終了しました"})
+        except Exception as e:
+            print(f"Supabase削除エラー: {traceback.format_exc()}")
+            return JSONResponse(content={"error": "共有曲の削除に失敗しました"}, status_code=500)
+    
+    # ここから下は再生中の処理（is_playing = True）
     
     # videoIdの検証
     video_id = song_data.get("videoId")
@@ -269,7 +284,8 @@ async def add_song(song: SongRequest):
         "videoid": video_id,  # 小文字に修正
         "lat": song_data.get("lat"),
         "lng": song_data.get("lng"),
-        "timestamp": datetime.now().isoformat()  # 現在の時刻を追加
+        "timestamp": datetime.now().isoformat(),  # 現在の時刻を追加
+        "is_playing": True  # 再生中フラグを設定
     }
 
     try:

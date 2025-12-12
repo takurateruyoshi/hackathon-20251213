@@ -171,3 +171,4 @@ lat: DOUBLE PRECISION - 共有位置の緯度
 lng: DOUBLE PRECISION - 共有位置の経度
 created_at: TIMESTAMP WITH TIME ZONE [DEFAULT NOW()] - 共有日時
 UNIQUE(shared_by_user_id) - 各ユーザーは1曲のみ共有可能
+is_playing: BOOLEAN [DEFAULT TRUE] - 再生中かどうかのフラグ
