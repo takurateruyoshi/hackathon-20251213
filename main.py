@@ -10,11 +10,13 @@ from pathlib import Path
 import traceback
 from datetime import datetime
 
+# --- 初期設定 ---
 try:
     from ytmusicapi import YTMusic
-    yt = YTMusic() # 地域指定を外してデフォルトで起動（これが一番安定します）
+    # 日本のチャートを取得するために地域を設定
+    yt = YTMusic(language='ja', location='JP')
     use_api = True
-    print("✅ ytmusicapi initialized")
+    print("✅ ytmusicapi initialized (JP mode)")
 except:
     use_api = False
 
@@ -27,6 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- Supabase設定 ---
 current_dir = Path(__file__).parent.absolute()
 load_dotenv(current_dir / '.env')
 supabase_url = os.environ.get("SUPABASE_URL")
@@ -35,6 +38,7 @@ use_supabase = bool(supabase_url and supabase_key)
 if use_supabase:
     supabase = create_client(supabase_url, supabase_key)
 
+# --- バックアップデータ ---
 BACKUP_SONGS = [
     { "id": "ZRtdQ81jPUQ", "title": "アイドル", "artist": "YOASOBI", "image": "https://img.youtube.com/vi/ZRtdQ81jPUQ/mqdefault.jpg" },
     { "id": "H6FUBWGSOIc", "title": "Bling-Bang-Bang-Born", "artist": "Creepy Nuts", "image": "https://img.youtube.com/vi/H6FUBWGSOIc/mqdefault.jpg" },
@@ -44,6 +48,7 @@ BACKUP_SONGS = [
 ]
 DUMMY_SONGS = []
 
+# --- Pydanticモデル定義 ---
 class AuthRequest(BaseModel):
     email: str
     password: str
@@ -69,6 +74,7 @@ class SongAdd(BaseModel):
     artist_name: str
     position: int = 0
 
+# --- ヘルパー関数 ---
 def snake_to_camel(data):
     if isinstance(data, list): return [snake_to_camel(i) for i in data]
     if isinstance(data, dict):
@@ -80,6 +86,7 @@ def snake_to_camel(data):
         return new_d
     return data
 
+# --- 認証API ---
 @app.post("/api/auth/signup")
 async def signup_user(req: AuthRequest):
     if not use_supabase: return JSONResponse({"error": "No DB"}, 500)
@@ -107,7 +114,7 @@ async def signin_user(req: AuthRequest):
     except Exception as e:
         return JSONResponse({"error": "Login failed"}, 400)
 
-# --- 共有API (修正: 画像URL生成を安全に) ---
+# --- 共有API ---
 @app.get("/api/songs")
 async def get_songs():
     if not use_supabase: return JSONResponse(DUMMY_SONGS)
@@ -116,9 +123,8 @@ async def get_songs():
         data = []
         for s in res.data:
             vid = s.get("videoid")
-            # IDがある場合のみ画像URLを作り、なければプレースホルダー
-            img_url = f"https://img.youtube.com/vi/{vid}/mqdefault.jpg" if vid else "https://via.placeholder.com/120x90?text=No+Image"
-            
+            # 画像URLの安全化
+            img = f"https://img.youtube.com/vi/{vid}/mqdefault.jpg" if vid and len(vid) > 5 else "https://via.placeholder.com/120x90?text=No+Image"
             data.append({
                 "id": vid,
                 "title": s.get("title"),
@@ -128,7 +134,7 @@ async def get_songs():
                 "videoId": vid,
                 "lat": s.get("lat"),
                 "lng": s.get("lng"),
-                "image": img_url
+                "image": img
             })
         return JSONResponse(data)
     except: return JSONResponse(DUMMY_SONGS)
@@ -151,16 +157,16 @@ async def add_song(song: SongRequest):
     except Exception as e:
         return JSONResponse({"error": str(e)}, 500)
 
-# --- ★チャートAPI (修正: 確実な検索に戻す) ---
+# --- チャートAPI (日本トレンド) ---
 @app.get("/api/charts")
 async def get_charts():
-    """検索を使って安定したヒット曲を取得"""
     if not use_api: return JSONResponse(BACKUP_SONGS)
     try:
-        # "J-Pop Music Video" で検索すれば、確実にトレンドに近い曲が出ます
-        res = yt.search("J-Pop Music Video", filter="videos", limit=20)
+        charts = yt.get_charts(country='JP')
+        results = charts.get('videos', {}).get('items', [])
+        
         songs = []
-        for item in res:
+        for item in results:
             if 'videoId' in item:
                 songs.append({
                     "id": item['videoId'],
@@ -168,8 +174,23 @@ async def get_charts():
                     "artist": item['artists'][0]['name'] if item.get('artists') else "Unknown",
                     "image": item['thumbnails'][-1]['url']
                 })
-        return JSONResponse(songs if songs else BACKUP_SONGS)
-    except: return JSONResponse(BACKUP_SONGS)
+        
+        # 取得できなかった場合のフォールバック検索
+        if not songs:
+            res = yt.search("J-Pop Top Hits", filter="videos", limit=20)
+            for item in res:
+                if 'videoId' in item:
+                    songs.append({
+                        "id": item['videoId'],
+                        "title": item['title'],
+                        "artist": item['artists'][0]['name'] if item.get('artists') else "Unknown",
+                        "image": item['thumbnails'][-1]['url']
+                    })
+
+        return JSONResponse(songs[:20])
+    except Exception as e:
+        print(f"Chart Error: {e}")
+        return JSONResponse(BACKUP_SONGS)
 
 @app.get("/api/search")
 async def search(q: str):
@@ -247,6 +268,31 @@ async def add_song_to_playlist(playlist_id: str, song: SongAdd, request: Request
     except Exception as e:
         return JSONResponse({"error": str(e)}, 500)
 
+# --- 削除機能 ---
+@app.delete("/api/playlists/{playlist_id}")
+async def delete_playlist(playlist_id: str, request: Request):
+    auth = request.headers.get("Authorization")
+    if not auth: return JSONResponse({"error": "Unauthorized"}, 401)
+    try:
+        token = auth.split(' ')[1]
+        user = supabase.auth.get_user(token)
+        # 曲を削除してからプレイリスト本体を削除
+        supabase.table("playlist_tracks").delete().eq("playlist_id", playlist_id).execute()
+        supabase.table("playlists").delete().eq("id", playlist_id).eq("user_id", user.user.id).execute()
+        return JSONResponse({"status": "deleted"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, 500)
+
+@app.delete("/api/playlists/{playlist_id}/songs/{video_id}")
+async def remove_song_from_playlist(playlist_id: str, video_id: str, request: Request):
+    auth = request.headers.get("Authorization")
+    if not auth: return JSONResponse({"error": "Unauthorized"}, 401)
+    try:
+        supabase.table("playlist_tracks").delete().eq("playlist_id", playlist_id).eq("track_video_id", video_id).execute()
+        return JSONResponse({"status": "deleted"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, 500)
+
 # --- 他ユーザーの公開曲取得 ---
 @app.get("/api/users/{username}/public-tracks")
 async def get_user_public_tracks(username: str):
@@ -264,7 +310,6 @@ async def get_user_public_tracks(username: str):
             track_res = supabase.table("playlist_tracks").select("*").eq("playlist_id", first_playlist_id).limit(20).execute()
             for t in track_res.data:
                 vid = t.get("track_video_id")
-                # ここでも安全な画像URLを生成
                 img = f"https://img.youtube.com/vi/{vid}/mqdefault.jpg" if vid else "https://via.placeholder.com/120x90?text=No+Image"
                 tracks.append({
                     "title": t.get("track_title"),

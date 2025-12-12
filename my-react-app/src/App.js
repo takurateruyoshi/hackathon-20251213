@@ -5,7 +5,8 @@ import {
   FaPlay, FaPause, FaChevronDown, FaList, FaHome, FaSearch, FaPlus, 
   FaTimes, FaUserFriends, FaArrowLeft, FaEllipsisV, 
   FaRedo, FaUndo, FaUserCircle, FaHeart, FaRegHeart, FaCommentDots, 
-  FaPaperPlane, FaSignInAlt, FaMusic, FaCheckDouble, FaCompactDisc 
+  FaPaperPlane, FaSignInAlt, FaMusic, FaCheckDouble, FaCompactDisc,
+  FaTrash // ★追加: ゴミ箱アイコン
 } from 'react-icons/fa'; 
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -24,10 +25,10 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-//const API_BASE_URL = 'http://127.0.0.1:8000/api'; 
-const API_BASE_URL = 'https://hackathon-20251213.onrender.com/api';
+// ★テスト用URL (デプロイ時はRenderのURLに変えてください)
+const API_BASE_URL = 'http://127.0.0.1:8000/api'; 
+// const API_BASE_URL = 'https://hackathon-20251213.onrender.com/api';
 
-// 画像エラー完全防止関数
 const getThumbUrl = (videoId) => {
     if (!videoId || typeof videoId !== 'string' || videoId === 'default' || videoId === 'undefined' || videoId === 'null') {
         return "https://via.placeholder.com/120x90?text=No+Image";
@@ -189,14 +190,12 @@ function App() {
     axios.get(`${API_BASE_URL}/charts`).then(res => setPopularSongs(res.data)).catch(() => setPopularSongs([]));
   }, []);
 
-  // プレイリスト取得 & お気に入り自動作成
   useEffect(() => {
     if (isLoggedIn && authToken) {
       axios.get(`${API_BASE_URL}/playlists`, { headers: getAuthHeader() })
         .then(async res => {
             let playlists = res.data;
             if (playlists.length === 0) {
-                // DBに作成
                 try {
                     const createRes = await axios.post(
                         `${API_BASE_URL}/playlists`, 
@@ -224,7 +223,6 @@ function App() {
           const uniqueSongs = Array.from(uniqueSongsMap.values());
           
           const songsAroundMe = uniqueSongs
-            // ★IDがないデータを除外
             .filter(song => song.videoId && song.videoId.length > 5)
             .map((song) => {
                 if (song.lat && song.lng) return song;
@@ -326,8 +324,6 @@ function App() {
 
   const playSong = (songData, autoExpand = true) => {
     let videoId = songData.videoId || songData.id || songData.trackVideoId || songData.track_video_id;
-    
-    // IDがないなら再生しない
     if (!videoId || typeof videoId !== 'string') return alert("再生不可: IDがありません");
 
     const song = { 
@@ -409,6 +405,43 @@ function App() {
     } catch (err) {
         console.error("追加失敗:", err);
         alert("追加に失敗しました");
+    }
+  };
+
+  // ★追加: プレイリスト自体を削除する関数
+  const handleDeletePlaylist = async (e, playlistId) => {
+    e.stopPropagation(); // 詳細画面が開かないようにする
+    if (!window.confirm("このプレイリストを削除しますか？")) return;
+
+    try {
+        await axios.delete(`${API_BASE_URL}/playlists/${playlistId}`, { headers: getAuthHeader() });
+        setMyPlaylists(prev => prev.filter(pl => pl.id !== playlistId));
+    } catch (err) {
+        console.error("削除失敗:", err);
+        alert("削除に失敗しました");
+    }
+  };
+
+  // ★追加: プレイリストから曲を削除する関数
+  const handleRemoveSong = async (e, playlistId, videoId) => {
+    e.stopPropagation(); // 再生が始まらないようにする
+    if (!window.confirm("この曲をプレイリストから削除しますか？")) return;
+
+    try {
+        await axios.delete(`${API_BASE_URL}/playlists/${playlistId}/songs/${videoId}`, { headers: getAuthHeader() });
+        // 画面のリストから削除
+        setViewingPlaylist(prev => ({
+            ...prev,
+            songs: prev.songs.filter(s => (s.videoId || s.trackVideoId) !== videoId)
+        }));
+        // 曲数カウントも減らす
+        setMyPlaylists(prev => prev.map(pl => {
+            if (pl.id === playlistId) return { ...pl, songsCount: Math.max(0, pl.songsCount - 1) };
+            return pl;
+        }));
+    } catch (err) {
+        console.error("曲削除失敗:", err);
+        alert("削除に失敗しました");
     }
   };
 
@@ -502,7 +535,6 @@ function App() {
                         </div>
                         <div style={{fontSize:'9px', color:'#aaa', marginTop:'2px'}}>{dist}m</div>
                     </div>
-                    {/* ★修正: 安全なサムネ関数 */}
                     <img src={getThumbUrl(vId)} alt="art" className="song-thumb" style={{ width: '40px', height: '40px', borderRadius: '8px' }} />
                     <div className="song-info" style={{flex:1}}>
                       <div className="song-title" style={{ fontSize: '14px' }}>{song.title}</div>
@@ -565,13 +597,16 @@ function App() {
                             return (
                                 <div key={index} className="song-item" onClick={() => playSong(song, true)}>
                                     <span className="rank-number" style={{fontSize:'12px', color:'#666'}}>{index + 1}</span>
-                                    {/* ★修正: 安全なサムネ関数 */}
                                     <img 
                                         src={getThumbUrl(vid)}
                                         alt="art" className="song-thumb" 
                                     />
                                     <div className="song-info"><div className="song-title">{song.trackTitle || song.title}</div><div className="song-artist">{song.artistName || song.artist}</div></div>
                                     <button className="play-icon-btn"><FaPlay /></button>
+                                    {/* ★追加: 曲削除ボタン */}
+                                    <button className="delete-btn" style={{marginLeft:'10px', background:'none', border:'none', color:'#666', cursor:'pointer'}} onClick={(e) => handleRemoveSong(e, viewingPlaylist.id, vid)}>
+                                        <FaTrash />
+                                    </button>
                                 </div>
                             );
                         })
@@ -584,7 +619,15 @@ function App() {
                     </div>
                     {myPlaylists.map(playlist => (
                        <div key={playlist.id} className="playlist-card" onClick={() => handleOpenPlaylist(playlist)}>
-                        <div className="playlist-art">🎵</div><div className="playlist-info"><h3>{playlist.title}</h3><p>{playlist.songsCount || 0} 曲</p></div><FaEllipsisV style={{color:'#666'}} />
+                        <div className="playlist-art">🎵</div>
+                        <div className="playlist-info">
+                            <h3>{playlist.title}</h3>
+                            <p>{playlist.songsCount || 0} 曲</p>
+                        </div>
+                        {/* ★追加: プレイリスト削除ボタン */}
+                        <div onClick={(e) => handleDeletePlaylist(e, playlist.id)} style={{padding:'10px', color:'#666', cursor:'pointer'}}>
+                            <FaTrash />
+                        </div>
                       </div>
                     ))}
                 </>
@@ -617,6 +660,7 @@ function App() {
                             <FaCompactDisc /> 公開プレイリスト
                         </h4>
                         <div style={{maxHeight:'150px', overflowY:'auto'}}>
+                            {/* viewingUser.playlist が本物のデータになります */}
                             {viewingUser.playlist && viewingUser.playlist.length > 0 ? (
                                 viewingUser.playlist.map((song, i) => (
                                     <div key={i} className="mini-song-row" onClick={() => playSong(song, true)} style={{display:'flex', alignItems:'center', padding:'8px 0', cursor:'pointer'}}>
@@ -644,6 +688,7 @@ function App() {
         </div>
       )}
 
+      {/* showAddToPlaylistModal, activeChat は変更なし */}
       {activeChat && (
         <div className="modal-overlay" onClick={() => setActiveChat(null)}>
             <div className="modal-content chat-rich" onClick={e => e.stopPropagation()}>
