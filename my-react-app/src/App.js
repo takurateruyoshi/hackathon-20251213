@@ -477,7 +477,7 @@ function App() {
       <div className={`main-content ${currentSong ? 'has-mini-player' : ''}`}>
         
         <header className="app-header" onClick={resetHome} style={{cursor:'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-          <h1>Music Radar 📡</h1>
+          <h1>Localhost:Music 📡</h1>
           <button onClick={handleLogout} style={{background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '14px'}}>
             ログアウト <FaSignInAlt style={{transform: 'rotate(180deg)'}} />
           </button>
